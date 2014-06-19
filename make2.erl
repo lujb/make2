@@ -66,9 +66,6 @@ all(Options) ->
 
 all(Options, Emake) ->
     {MakeOpts,CompileOpts} = sort_options(Options,[],[]),
-    put(force_compile, lists:member(force_compile, CompileOpts)),
-    put(shadow_cached, lists:member(shadow_cached, CompileOpts)),
-    put(less_output, lists:member(less_output, CompileOpts)),
 	all(MakeOpts, CompileOpts, Emake).
 
 all(MakeOpts, CompileOpts, undefined) ->
@@ -348,7 +345,7 @@ recompilep(File, NoExec, Load, Opts) ->
 		  false ->
 		      ObjName
 	      end,
-    case {get(force_compile), exists(ObjFile)} of
+    case {member(force_compile, Opts), exists(ObjFile)} of
 		{false, true} ->
 		    recompilep1(File, NoExec, Load, Opts, ObjFile);
 		_ ->
@@ -375,7 +372,7 @@ recompile2(ObjMTime, File, NoExec, Load, Opts) ->
 	    recompile(File, NoExec, Load, Opts);
 	false ->
 		cached_count(File),
-		case get(shadow_cached) of
+		case member(less_output, Opts) of
 			true ->
 				ok;
 			false ->
@@ -647,6 +644,7 @@ comp_ret_ok(#compile{ifile=File, code=Code,warnings=Warn0,module=Mod,options=Opt
             Warn = messages_per_file(Warn0),
 		    Ok = case Warn of
 	            	[] ->
+	            		compile_count({File, 0, 0}),
 	            		true;
 	            	[{F, W}] ->
 	            		compile_count({F, length(W), 0}),
@@ -683,6 +681,7 @@ comp_ret_err(#compile{ifile=File,warnings=Warn0,errors=Err0,options=Opts}=St) ->
 
     Ret = case {Warn,Err} of
     	{[], []} ->
+    		compile_count({File, 0, 0}),
     		ok;
     	{[{F,W}], []}->
     		compile_count({F, length(W), 0}),
